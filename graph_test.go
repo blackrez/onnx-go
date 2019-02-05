@@ -5,8 +5,8 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	onnx "github.com/owulveryck/onnx-go"
+	"github.com/owulveryck/onnx-go/backend/simple"
 	pb "github.com/owulveryck/onnx-go/internal/pb-onnx"
-	"github.com/owulveryck/onnx-go/simple"
 )
 
 var (

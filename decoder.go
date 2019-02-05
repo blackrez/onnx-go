@@ -169,8 +169,8 @@ func (m *Model) unmarshal(model *pb.ModelProto) error {
 				dst.SetWeightedEdge(e)
 			}
 			// The graph can apply operations
-			if _, ok := dst.(OperationApplyer); ok {
-				op, err := dst.(OperationApplyer).ONNXGetOperationFromName(node.OpType)
+			if _, ok := dst.(OperationCarrier); ok {
+				op, err := dst.(OperationCarrier).NewOp(node.OpType)
 				if err != nil {
 					return err
 				}
@@ -180,11 +180,7 @@ func (m *Model) unmarshal(model *pb.ModelProto) error {
 					return err
 				}
 
-				operation, ok := op.(Operation)
-				if !ok {
-					return errors.New("Graph builder did not return an operation")
-				}
-				err = dst.(OperationApplyer).ONNXApply(operation.Constructor(), no)
+				err = dst.(OperationCarrier).Apply(op, no)
 				if err != nil {
 					return err
 				}
@@ -195,18 +191,14 @@ func (m *Model) unmarshal(model *pb.ModelProto) error {
 	return nil
 }
 
-// OperationApplyer is any graph that can apply operations on its node
+// OperationCarrier is any graph that can apply operations on its node
 // regarding the structure of the graph
-type OperationApplyer interface {
-	// ONNXGetOperationFromName returns an interface that should be compatible with Operation
-	// It is the responsibility of the implementor to do that
-	ONNXGetOperationFromName(s string) (interface{}, error)
-	ONNXApply(operation func(g graph.WeightedDirected, n graph.Node) (interface{}, error), n graph.Node) error
+type OperationCarrier interface {
+	NewOp(s string) (Op, error)
+	Apply(operation Op, n graph.Node) error
 }
 
-// Operation is an interface that should be fulfiled by any Operation
-type Operation interface {
-	// Constructor returns a function that itself returns an operator to be applied on node n.
-	// The arguments of the operator are found thanks to the graph
-	Constructor() func(g graph.WeightedDirected, n graph.Node) (interface{}, error)
+// Op represent an operation to be applied on a node N of the graph G.
+type Op interface {
+	Apply(g graph.WeightedDirected, n graph.Node) error
 }
