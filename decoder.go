@@ -8,7 +8,9 @@ import (
 	"gorgonia.org/tensor"
 )
 
-// Model ...
+// Model is a top level structure that carry the execution graph.
+// Input holds the ID of the nodes that are not initialized.
+// Output hlds the ID of the top level nodes.
 type Model struct {
 	g        graph.DirectedWeightedBuilder
 	dbByName map[string]graph.Node
@@ -16,14 +18,15 @@ type Model struct {
 	Output   []int64
 }
 
-// NewModel ...
+// NewModel create a model and sets the internal graph to "dst"
 func NewModel(dst graph.DirectedWeightedBuilder) *Model {
 	return &Model{
 		g: dst,
 	}
 }
 
-// Unmarshal ...
+// Unmarshal the ONNX data in the model, filling the
+// graph as well as Input and Output.
 func (m *Model) Unmarshal(data []byte) error {
 	model := &pb.ModelProto{}
 	err := proto.Unmarshal(data, model)
@@ -45,12 +48,12 @@ func (m *Model) GetNodeByName(name string) (graph.Node, bool) {
 //
 // Executable graphs
 //
-// If dst fulfils the OperationApplyer interface, the corresponding methods are called after the initialization of
+// If dst fulfils the OperationCarrier interface, the corresponding methods are called after the initialization of
 // the structure.
 //
 // Node values
 //
-// If the graph nodes are fulfilling the Tensor interface, this function their values and shapes by calling
+// If the graph nodes are fulfilling the TensorCarrier interface, this function set their values and shapes by calling
 // the corresponding methods.
 func Unmarshal(data []byte, dst graph.DirectedWeightedBuilder) error {
 	model := &pb.ModelProto{}
@@ -64,6 +67,7 @@ func Unmarshal(data []byte, dst graph.DirectedWeightedBuilder) error {
 	return m.unmarshal(model)
 }
 
+// processValue creates a new node and if the node is a TensorCarrier sets its value.
 func (m *Model) processValue(io *pb.ValueInfoProto) (graph.Node, error) {
 	dst := m.g
 	n := dst.NewNode()
@@ -191,8 +195,8 @@ func (m *Model) unmarshal(model *pb.ModelProto) error {
 	return nil
 }
 
-// OperationCarrier is any graph that can apply operations on its node
-// regarding the structure of the graph
+// OperationCarrier is any graph that can apply operations on its nodes
+// in regard to the structure of the graph
 type OperationCarrier interface {
 	NewOp(s string) (Op, error)
 	Apply(operation Op, n graph.Node) error
@@ -200,5 +204,14 @@ type OperationCarrier interface {
 
 // Op represent an operation to be applied on a node N of the graph G.
 type Op interface {
-	Apply(g graph.WeightedDirected, n graph.Node) error
+	// Make build the operation regarding the node's shape and its surrounding
+	// elements inside the graph.
+	// For example, the Make operation of the Add operator can take care of broadcasting.
+	// please take care that within this method you can use shape, type and dimensions of
+	// the children nodes, but (most of the time) not their actual values.
+	//
+	// WARNING: this is not the actual execution of the operation that should be performed
+	// with whatever method at runtime while walking the graph. The order of execution
+	// of the operators is not guaranteed at the build phase.
+	Make(g graph.WeightedDirected, n graph.Node) error
 }
