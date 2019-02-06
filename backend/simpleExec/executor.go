@@ -14,7 +14,7 @@ func (g *Graph) NewOp(s string) (onnx.Op, error) {
 
 // Apply apply the operation to the node n
 func (g *Graph) Apply(op onnx.Op, n graph.Node) error {
-	return nil
+	return op.Make(g.g, n)
 }
 
 // noop is a noop that simple display its name and its arguments
@@ -27,7 +27,7 @@ func (*noop) Do(input ...tensor.Tensor) error {
 	return nil
 }
 
-func (d *noop) Apply(g graph.WeightedDirected, n graph.Node) error {
+func (d *noop) Make(g graph.WeightedDirected, n graph.Node) error {
 	n.(*Node).operation = d
 	return nil
 }
