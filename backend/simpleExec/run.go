@@ -32,7 +32,11 @@ func Compute(g *Graph, node int64) error {
 		if inputs == nil || len(inputs) == 0 {
 			return errors.New("input node's children don't have any value")
 		}
-		err := g.Node(n[i]).(*Node).operation.Do(g.Node(n[i]).(*Node).value, inputs...)
+		val, err := g.Node(n[i]).(*Node).operation.Do(inputs...)
+		if err != nil {
+			return err
+		}
+		err = g.Node(n[i]).(*Node).ApplyTensor(val)
 		if err != nil {
 			return err
 		}

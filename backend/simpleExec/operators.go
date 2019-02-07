@@ -10,11 +10,13 @@ import (
 type reshape struct{}
 
 // Do ...
-func (*reshape) Do(t tensor.Tensor, input ...tensor.Tensor) error {
-	if len(input) != 1 {
-		return errors.New("[reshape] bad arity")
+func (*reshape) Do(input ...tensor.Tensor) (tensor.Tensor, error) {
+	if len(input) != 2 {
+		return nil, errors.New("[reshape] bad arity")
 	}
-	return t.Reshape(input[0].Shape()...)
+	output := input[0].Clone().(tensor.Tensor)
+	err := output.Reshape(input[1].Shape()...)
+	return output, err
 }
 
 // Make ...

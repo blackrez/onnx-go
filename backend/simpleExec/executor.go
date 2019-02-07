@@ -32,12 +32,11 @@ type noop struct {
 }
 
 // Do ...
-func (*noop) Do(t tensor.Tensor, input ...tensor.Tensor) error {
+func (*noop) Do(input ...tensor.Tensor) (tensor.Tensor, error) {
 	if len(input) != 1 {
-		return errors.New("[noop] bad arity")
+		return nil, errors.New("[noop] bad arity")
 	}
-	t = input[0].Clone().(tensor.Tensor)
-	return nil
+	return input[0].Clone().(tensor.Tensor), nil
 }
 
 func (d *noop) Make(g graph.WeightedDirected, n graph.Node) error {

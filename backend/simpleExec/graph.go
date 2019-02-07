@@ -29,7 +29,7 @@ type Node struct {
 
 // An operation is a type evaluated at runtime
 type operation interface {
-	Do(tensor.Tensor, ...tensor.Tensor) error
+	Do(...tensor.Tensor) (tensor.Tensor, error)
 }
 
 // ID to fulfil the graph.Node interface
