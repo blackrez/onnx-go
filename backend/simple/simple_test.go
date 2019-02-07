@@ -1,17 +1,20 @@
 package simple
 
 import (
+	"log"
 	"testing"
 
 	onnx "github.com/owulveryck/onnx-go"
 	"github.com/owulveryck/onnx-go/internal/examples/mnist"
 	pb "github.com/owulveryck/onnx-go/internal/pb-onnx"
+	"gonum.org/v1/gonum/graph"
+	"gonum.org/v1/gonum/graph/traverse"
 )
 
 func TestMnist(t *testing.T) {
 
-	graph := NewGraph()
-	m := onnx.NewModel(graph)
+	g := NewGraph()
+	m := onnx.NewModel(g)
 	b := mnist.GetMnist()
 	err := m.Unmarshal(b)
 	if err != nil {
@@ -31,16 +34,22 @@ func TestMnist(t *testing.T) {
 	if len(m.Input) != 1 {
 		t.Fatal("Expected only one input")
 	}
-	err = graph.Node(m.Input[0]).(*Node).ApplyTensor(inputT)
+	err = g.Node(m.Input[0]).(*Node).ApplyTensor(inputT)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(m.Output) != 1 {
-		t.Fatal("Expected only one output")
+	n := make([]graph.Node, 0)
+	bf := traverse.BreadthFirst{
+		EdgeFilter: nil,
+		Visit: func(u, v graph.Node) {
+			if len(n) == 0 || n[len(n)-1] != u {
+				n = append(n, u)
+			}
+		},
 	}
-	err = Compute(graph, m.Output[0])
-	if err != nil {
-		t.Fatal(err)
+	bf.Walk(g, g.Node(m.Output[0]), nil)
+	for i := len(n) - 1; i >= 0; i-- {
+		log.Println(n[i])
 	}
-	t.Log(graph.Node(m.Output[0]).(*Node).Data())
+
 }

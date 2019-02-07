@@ -112,7 +112,7 @@ func (g *Graph) DOTAttributers() (graph, node, edge encoding.Attributer) {
 	return graphAttributes, nodeAttributes, attributer{}
 }
 
-func NewSimpleGraph() *Graph {
+func NewGraph() *Graph {
 	return &Graph{
 		g: simple.NewWeightedDirectedGraph(math.MaxFloat64, -1),
 	}

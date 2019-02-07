@@ -29,7 +29,7 @@ type Node struct {
 
 // An operation is a type evaluated at runtime
 type operation interface {
-	Do(...tensor.Tensor) error
+	Do(tensor.Tensor, ...tensor.Tensor) error
 }
 
 // ID to fulfil the graph.Node interface
@@ -190,4 +190,11 @@ func (g *Graph) To(id int64) graph.Nodes {
 // Data returns the underlying tensor
 func (n *Node) Data() tensor.Tensor {
 	return n.value
+}
+
+// WeightedEdge returns the weighted edge from u to v
+// if such an edge exists and nil otherwise.
+// The node v must be directly reachable from u as defined by the From method.
+func (g *Graph) WeightedEdge(uid, vid int64) graph.WeightedEdge {
+	return g.g.WeightedEdge(uid, vid)
 }

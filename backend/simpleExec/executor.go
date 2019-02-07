@@ -1,6 +1,8 @@
 package simple
 
 import (
+	"errors"
+
 	onnx "github.com/owulveryck/onnx-go"
 	"gonum.org/v1/gonum/graph"
 	"gorgonia.org/tensor"
@@ -9,7 +11,14 @@ import (
 // NewOp returns an operation that should be compatible with Operationa
 // This methods is part of the OperationApplyer interface
 func (g *Graph) NewOp(s string) (onnx.Op, error) {
-	return nil, nil
+	switch s {
+	case "Reshape":
+		return &reshape{}, nil
+	default:
+		return nil, &onnx.ErrNotImplemented{
+			Operator: s,
+		}
+	}
 }
 
 // Apply apply the operation to the node n
@@ -23,7 +32,11 @@ type noop struct {
 }
 
 // Do ...
-func (*noop) Do(input ...tensor.Tensor) error {
+func (*noop) Do(t tensor.Tensor, input ...tensor.Tensor) error {
+	if len(input) != 1 {
+		return errors.New("[noop] bad arity")
+	}
+	t = input[0].Clone().(tensor.Tensor)
 	return nil
 }
 
