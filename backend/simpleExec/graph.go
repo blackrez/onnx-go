@@ -119,8 +119,8 @@ func (g *Graph) DOTAttributers() (graph, node, edge encoding.Attributer) {
 	return graphAttributes, nodeAttributes, attributer{}
 }
 
-// NewSimpleGraph ...
-func NewSimpleGraph() *Graph {
+// NewGraph ...
+func NewGraph() *Graph {
 	return &Graph{
 		g: simple.NewWeightedDirectedGraph(math.MaxFloat64, -1),
 	}
@@ -185,4 +185,9 @@ func (g *Graph) HasEdgeFromTo(uid, vid int64) bool {
 // To ...
 func (g *Graph) To(id int64) graph.Nodes {
 	return g.g.To(id)
+}
+
+// Data returns the underlying tensor
+func (n *Node) Data() tensor.Tensor {
+	return n.value
 }
