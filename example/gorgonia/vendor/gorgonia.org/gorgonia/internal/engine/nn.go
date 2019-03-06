@@ -107,6 +107,81 @@ func Dropout(x *Node, prob float64) (retVal *Node, err error) {
 	return HadamardDiv(retVal, c)
 }
 
+// NewDropoutOperation ...
+func NewDropoutOperation(prob float64) Operation {
+	return func(g graph.WeightedDirected, n node.Node) (ops.Op, error) {
+		it := getOrderedChildren(g, n)
+		if it.Len() != 1 {
+			return nil, errors.New("relu: Unexpected number of children")
+		}
+		children := make([]*Node, it.Len())
+		for i := 0; it.Next(); i++ {
+			children[i] = it.Node().(*Node)
+		}
+		x := children[0]
+		var dt tensor.Dtype
+		var err error
+		if dt, err = dtypeOf(x.t); err != nil {
+			return nil, errors.Wrap(err, dtypeOfFail)
+		}
+
+		var opp, pr value.Value // opp = 1 per p
+		switch dt {
+		case Float64:
+			opp, _ = value.AnyToScalar(1.0 / prob)
+			pr, _ = value.AnyToScalar(prob)
+		case Float32:
+			opp, _ = value.AnyToScalar(float32(1.0 / prob))
+			pr, _ = value.AnyToScalar(float32(prob))
+		default:
+			return nil, errors.Errorf(nyiTypeFail, "Dropout()", dt)
+		}
+		p := g.(*ExprGraph).NewConstant(pr)
+		g.(*ExprGraph).AddNode(p)
+
+		c := g.(*ExprGraph).NewConstant(opp)
+		g.(*ExprGraph).AddNode(c)
+
+		// gtNode -> m
+		// gtNode -> x
+		m := UniformRandomNode(x.g, dt, 0, 1, x.shape...)
+		g.(*ExprGraph).AddNode(m)
+		gtNode := g.(*ExprGraph).NewNode().(*Node)
+		g.(*ExprGraph).AddNode(gtNode)
+		g.(graph.DirectedWeightedBuilder).SetWeightedEdge(
+			g.(graph.DirectedWeightedBuilder).NewWeightedEdge(gtNode, m, 0))
+		g.(graph.DirectedWeightedBuilder).SetWeightedEdge(
+			g.(graph.DirectedWeightedBuilder).NewWeightedEdge(gtNode, x, 1))
+
+		err = g.(*ExprGraph).ApplyOp(NewGtOperation(nil, nil, true), gtNode)
+		if err != nil {
+			return nil, errors.Wrap(err, "Greater Than failed")
+		}
+		// remove the link fron n to x
+		g.(*ExprGraph).RemoveEdge(n.ID(), x.ID())
+
+		hProd := g.(*ExprGraph).NewNode().(*Node)
+		g.(*ExprGraph).AddNode(hProd)
+		g.(graph.DirectedWeightedBuilder).SetWeightedEdge(
+			g.(graph.DirectedWeightedBuilder).NewWeightedEdge(hProd, x, 0))
+		g.(graph.DirectedWeightedBuilder).SetWeightedEdge(
+			g.(graph.DirectedWeightedBuilder).NewWeightedEdge(gtNode, x, 1))
+		err = g.(*ExprGraph).ApplyOp(NewHadamardProdOperation(nil, nil), hProd)
+		if err != nil {
+			return nil, errors.Wrap(err, "mulFail:")
+		}
+
+		// remove the link fron n to x
+		g.(*ExprGraph).RemoveEdge(n.ID(), x.ID())
+		g.(graph.DirectedWeightedBuilder).SetWeightedEdge(
+			g.(graph.DirectedWeightedBuilder).NewWeightedEdge(n, hProd, 0))
+		g.(graph.DirectedWeightedBuilder).SetWeightedEdge(
+			g.(graph.DirectedWeightedBuilder).NewWeightedEdge(n, c, 1))
+		return NewHadamardDivOperation(nil, nil)(g, n)
+
+	}
+}
+
 // NewRectifyOperation is a convenience function for creating rectified linear units activation functions.
 // This function uses >=, which is the canonical version. If you want to use >, you can create
 // your own by just following this.
