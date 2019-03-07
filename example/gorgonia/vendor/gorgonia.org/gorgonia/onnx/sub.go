@@ -2,16 +2,17 @@ package onnx
 
 import (
 	"errors"
+	"log"
 
 	"gonum.org/v1/gonum/graph"
 	"gorgonia.org/gorgonia/internal/engine"
 )
 
-// Add performs a pointwise add.
-type Add struct{}
+// Sub2 performs a pointwise add.
+type Sub2 struct{}
 
 // Constructor to fulfil the interface ...
-func (a *Add) Constructor() func(g graph.WeightedDirected, n graph.Node) (interface{}, error) {
+func (a *Sub2) Constructor() func(g graph.WeightedDirected, n graph.Node) (interface{}, error) {
 	return func(g graph.WeightedDirected, n graph.Node) (interface{}, error) {
 		it := getOrderedChildren(g, n)
 		// Get the shape from the child
@@ -27,6 +28,8 @@ func (a *Add) Constructor() func(g graph.WeightedDirected, n graph.Node) (interf
 		y := children[1]
 		var leftPattern []byte
 		var rightPattern []byte
+		log.Println(y)
+		log.Println(y.Value().Data())
 		switch {
 		case len(x.Shape()) == 1 && len(y.Shape()) != 1:
 			// Need left broadcasting
@@ -44,7 +47,7 @@ func (a *Add) Constructor() func(g graph.WeightedDirected, n graph.Node) (interf
 			if _, ok := g.(graph.DirectedWeightedBuilder); !ok {
 				return nil, errors.New("graph is not a builder")
 			}
-			// Add a reshaped node
+			// Sub a reshaped node
 			reshaped := g.(graph.DirectedWeightedBuilder).NewNode()
 			g.(graph.DirectedWeightedBuilder).AddNode(reshaped)
 
@@ -62,11 +65,11 @@ func (a *Add) Constructor() func(g graph.WeightedDirected, n graph.Node) (interf
 			if err != nil {
 				return nil, err
 			}
-		case len(y.Shape()) == 1 && len(x.Shape()) != 1:
+		case len(y.Shape()) <= 1 && len(x.Shape()) != 1:
 			// Need right broadcasting
 			dims := make([]int, len(x.Shape()))
 			for i := 0; i < len(x.Shape()); i++ {
-				if x.Shape()[i] != y.Shape()[0] {
+				if len(y.Shape()) == 0 || x.Shape()[i] != y.Shape()[0] {
 					dims[i] = 1
 					rightPattern = append(rightPattern, byte(i))
 				} else {
@@ -74,7 +77,7 @@ func (a *Add) Constructor() func(g graph.WeightedDirected, n graph.Node) (interf
 				}
 			}
 			var err error
-			// Add a reshaped node
+			// Sub a reshaped node
 			reshaped := g.(graph.DirectedWeightedBuilder).NewNode()
 			g.(graph.DirectedWeightedBuilder).AddNode(reshaped)
 
@@ -100,7 +103,7 @@ func (a *Add) Constructor() func(g graph.WeightedDirected, n graph.Node) (interf
 				dims[i+1] = y.Shape()[i]
 			}
 			var err error
-			// Add a reshaped node
+			// Sub a reshaped node
 			reshaped := g.(graph.DirectedWeightedBuilder).NewNode()
 			g.(graph.DirectedWeightedBuilder).AddNode(reshaped)
 
@@ -130,7 +133,7 @@ func (a *Add) Constructor() func(g graph.WeightedDirected, n graph.Node) (interf
 			if _, ok := g.(graph.DirectedWeightedBuilder); !ok {
 				return nil, errors.New("graph is not a builder")
 			}
-			// Add a reshaped node
+			// Sub a reshaped node
 			reshaped := g.(graph.DirectedWeightedBuilder).NewNode()
 			g.(graph.DirectedWeightedBuilder).AddNode(reshaped)
 
@@ -151,6 +154,6 @@ func (a *Add) Constructor() func(g graph.WeightedDirected, n graph.Node) (interf
 
 			leftPattern = []byte{0, 2, 3}
 		}
-		return engine.NewAddOperation(leftPattern, rightPattern)(g, n.(*engine.Node))
+		return engine.NewSubOperation(leftPattern, rightPattern)(g, n.(*engine.Node))
 	}
 }

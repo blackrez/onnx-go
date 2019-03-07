@@ -151,7 +151,7 @@ func NewDropoutOperation(prob float64) Operation {
 		g.(graph.DirectedWeightedBuilder).SetWeightedEdge(
 			g.(graph.DirectedWeightedBuilder).NewWeightedEdge(gtNode, m, 0))
 		g.(graph.DirectedWeightedBuilder).SetWeightedEdge(
-			g.(graph.DirectedWeightedBuilder).NewWeightedEdge(gtNode, x, 1))
+			g.(graph.DirectedWeightedBuilder).NewWeightedEdge(gtNode, p, 1))
 
 		err = g.(*ExprGraph).ApplyOp(NewGtOperation(nil, nil, true), gtNode)
 		if err != nil {
@@ -165,7 +165,7 @@ func NewDropoutOperation(prob float64) Operation {
 		g.(graph.DirectedWeightedBuilder).SetWeightedEdge(
 			g.(graph.DirectedWeightedBuilder).NewWeightedEdge(hProd, x, 0))
 		g.(graph.DirectedWeightedBuilder).SetWeightedEdge(
-			g.(graph.DirectedWeightedBuilder).NewWeightedEdge(gtNode, x, 1))
+			g.(graph.DirectedWeightedBuilder).NewWeightedEdge(hProd, gtNode, 1))
 		err = g.(*ExprGraph).ApplyOp(NewHadamardProdOperation(nil, nil), hProd)
 		if err != nil {
 			return nil, errors.Wrap(err, "mulFail:")

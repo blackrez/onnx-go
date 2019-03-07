@@ -6,7 +6,8 @@ import (
 
 	onnx "github.com/owulveryck/onnx-go"
 	pb "github.com/owulveryck/onnx-go/internal/pb-onnx"
-	"gorgonia.org/gorgonia/debugger/dot"
+
+	//"gorgonia.org/gorgonia/debugger/dot"
 	"gorgonia.org/gorgonia/node"
 	gorgonnx "gorgonia.org/gorgonia/onnx"
 )
@@ -14,7 +15,7 @@ import (
 func main() {
 	graph := gorgonnx.NewGraph()
 	m := onnx.NewModel(graph)
-	b, err := ioutil.ReadFile("/Users/olivier.wulveryck/Documents/squeezenet/model.onnx")
+	b, err := ioutil.ReadFile("/Users/olivier.wulveryck/Documents/emotion_ferplus/model.onnx")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -23,14 +24,17 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	_, err = dot.Marshal(graph)
-	if err != nil {
-		log.Fatal(err)
-	}
+	/*
+		b, err = dot.Marshal(graph)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf(string(b))
+	*/
 
 	sampleTestData := new(pb.TensorProto)
 
-	b, err = ioutil.ReadFile("/Users/olivier.wulveryck/Documents/squeezenet/test_data_set_0/input_0.pb")
+	b, err = ioutil.ReadFile("/Users/olivier.wulveryck/Documents/emotion_ferplus/test_data_set_1/input_0.pb")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -63,4 +67,25 @@ func main() {
 	for _, v := range m.Output {
 		log.Println(graph.Node(v).(node.Node).Value().Data())
 	}
+
+	printOutput("/Users/olivier.wulveryck/Documents/emotion_ferplus/test_data_set_1/output_0.pb")
+}
+
+func printOutput(o string) {
+	sampleOutputData := new(pb.TensorProto)
+	b, err := ioutil.ReadFile(o)
+	if err != nil {
+		log.Fatal(err)
+	}
+	//err = sampleTestData.XXX_Unmarshal(mnist.GetTest1Input0())
+	err = sampleOutputData.XXX_Unmarshal(b)
+	if err != nil {
+		log.Fatal(err)
+	}
+	t, err := sampleOutputData.Tensor()
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println(t)
+
 }

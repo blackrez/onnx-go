@@ -33,6 +33,8 @@ func (g Graph) ApplyOperation(op onnx.Operation, n graph.Node) error {
 		o = NewMaxpool()
 	case "Conv":
 		o = NewConv()
+	case "Dropout":
+		o = NewDropout()
 	case "Relu":
 		o = &Rectify{}
 	case "Reshape":
@@ -80,11 +82,11 @@ func (g Graph) ApplyOperation(op onnx.Operation, n graph.Node) error {
 	case "Add":
 		o = &Add{}
 	case "Sub":
-		o = &Sub{}
+		o = &Sub2{}
 	case "MatMul":
 		o = &Mul{}
-	case "HadamardDiv":
-		o = &HadamardDiv{}
+	case "Div":
+		o = &HadamardDiv2{}
 	case "Pow":
 		o = &Pow{}
 	case "Lt":
