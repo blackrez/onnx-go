@@ -9,6 +9,7 @@
   <!--
   <script type='text/javascript' src='http://cdnjs.cloudflare.com/ajax/libs/fabric.js/1.4.0/fabric.min.js'></script>
   -->
+  <link rel='stylesheet' href='https://cdn.jsdelivr.net/gh/kognise/water.css@latest/dist/dark.css'>
   <script type='text/javascript' src='static/js/fabric.min.js'></script>
 
   <!-- Going to use JQuery so its good to have library locally -->
@@ -49,7 +50,7 @@
                 //Send Ajax call
                 $.ajax({
                     type: 'post',
-                    url: '/picture',
+                    url: 'https://mnist-7qfm5j5rza-uc.a.run.app/picture',
                     data: imgURL,
                 
                     success: function(data){

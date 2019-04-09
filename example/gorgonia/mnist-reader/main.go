@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"context"
+	"crypto/sha256"
 	"flag"
 	"fmt"
 	"image"
@@ -10,6 +12,7 @@ import (
 	"math"
 	"net/http"
 
+	"cloud.google.com/go/storage"
 	"github.com/disintegration/imaging"
 	"github.com/owulveryck/onnx-go"
 	"github.com/vincent-petithory/dataurl"
@@ -23,6 +26,7 @@ const size = 28
 var (
 	graph *gorgonnx.Graph
 	model *onnx.Model
+	client *storage.Client
 )
 
 func main() {
@@ -30,6 +34,18 @@ func main() {
 	directory := flag.String("d", ".", "the directory of static file to host")
 	onnxModel := flag.String("model", "", "the onnx model to use")
 	flag.Parse()
+
+	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
+	if projectID == "" {
+		fmt.Fprintf(os.Stderr, "GOOGLE_CLOUD_PROJECT environment variable must be set.\n")
+		os.Exit(1)
+	}
+
+	ctx := context.Background()
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	graph = gorgonnx.NewGraph()
 	model = onnx.NewModel(graph)
@@ -53,21 +69,46 @@ func main() {
 	log.Fatal(http.ListenAndServe(":"+*port, nil))
 }
 
+func enableCors(w *http.ResponseWriter) {
+       (*w).Header().Set("Access-Control-Allow-Origin", "*")
+}
+
 func getPicture(w http.ResponseWriter, r *http.Request) {
 	dataURL, err := dataurl.Decode(r.Body)
 	defer r.Body.Close()
+	enableCors(&w)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	if dataURL.ContentType() == "image/png" {
-		m, _, err := image.Decode(bytes.NewReader(dataURL.Data))
+		rawimg := bytes.NewReader(dataURL.Data)
+		m, _, err := image.Decode(rawimg)
 		if err != nil {
 			log.Println(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		if _, err := io.Copy(hash, m)
+		if err != nil {
+			log.Fatal(err)
+		}
+		sum := hash.Sum(nil)
+
+		ctx := context.Background()
+		wc := client.Bucket(bucket).Object(object).NewWriter(ctx)
+		if _, err = io.Copy(wc, f); err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if err := wc.Close(); err != nil {
+			log.PRintln(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		output, err := analyze(m)
 		if err != nil {
 			log.Println(err)
