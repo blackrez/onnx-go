@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"image"
+	"io"
 	"io/ioutil"
 	"log"
 	"math"
@@ -24,8 +26,8 @@ import (
 const size = 28
 
 var (
-	graph *gorgonnx.Graph
-	model *onnx.Model
+	graph  *gorgonnx.Graph
+	model  *onnx.Model
 	client *storage.Client
 )
 
@@ -34,18 +36,6 @@ func main() {
 	directory := flag.String("d", ".", "the directory of static file to host")
 	onnxModel := flag.String("model", "", "the onnx model to use")
 	flag.Parse()
-
-	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
-	if projectID == "" {
-		fmt.Fprintf(os.Stderr, "GOOGLE_CLOUD_PROJECT environment variable must be set.\n")
-		os.Exit(1)
-	}
-
-	ctx := context.Background()
-	client, err := storage.NewClient(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	graph = gorgonnx.NewGraph()
 	model = onnx.NewModel(graph)
@@ -70,7 +60,7 @@ func main() {
 }
 
 func enableCors(w *http.ResponseWriter) {
-       (*w).Header().Set("Access-Control-Allow-Origin", "*")
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
 }
 
 func getPicture(w http.ResponseWriter, r *http.Request) {
@@ -90,21 +80,37 @@ func getPicture(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		if _, err := io.Copy(hash, m)
+
+		hash := sha256.New()
+		_, err = io.Copy(hash, rawimg)
 		if err != nil {
 			log.Fatal(err)
 		}
-		sum := hash.Sum(nil)
+		sum := hex.EncodeToString(hash.Sum(nil))
 
+		if client == nil {
+			// Pre-declare an err variable to avoid shadowing client.
+			var err error
+			client, err = storage.NewClient(context.Background())
+			if err != nil {
+				http.Error(w, "Internal error", http.StatusInternalServerError)
+				log.Printf("storage.NewClient: %v", err)
+				return
+			}
+		}
 		ctx := context.Background()
-		wc := client.Bucket(bucket).Object(object).NewWriter(ctx)
-		if _, err = io.Copy(wc, f); err != nil {
+		_, err = rawimg.Seek(0, 0)
+		if err != nil {
+			log.Fatal(err)
+		}
+		wc := client.Bucket("demo-onnx-gorgonia").Object("images/" + sum + ".png").NewWriter(ctx)
+		if _, err = io.Copy(wc, rawimg); err != nil {
 			log.Println(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		if err := wc.Close(); err != nil {
-			log.PRintln(err)
+			log.Println(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
