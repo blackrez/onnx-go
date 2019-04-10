@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>mnist test</title>
+  <title>Gorgonia run on cloud run</title>
 
   <!-- fabric.js library -->
   <!--
@@ -25,6 +25,7 @@
             //Initialize  fabric 
             function initCanvas(){
                 canvas = new fabric.Canvas('canvasBox');
+		canvas.allowTouchScrolling = false;
                 canvas.isDrawingMode = true;
                 canvas.freeDrawingBrush.width = bThick;
                 canvas.freeDrawingBrush.color = cColour;
@@ -63,12 +64,13 @@
 
 </head>
     <body>
-
+	    <h1>Demo of onnx-go running on cloud run</h1>
+	    <p>This an example app of onnx-go backed by cloud run. Draw a number and the app will guess.</p>
       <canvas id="canvasBox"position="relative" width="280" height="280"></canvas>                             
       <button id="btnSubmit" onclick="postImg()">Submit</button>
       <button onclick="reset()">Reset</button>
-      <h2>Result:</h2>                    
+      <h2>Result:</h2>
       <h1 id="guess"></h1>
-
+      Build with <a href="https://github.com/owulveryck/onnx-go">onnx-go</a>
     </body>
 </html>
