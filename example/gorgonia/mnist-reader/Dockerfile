@@ -1,14 +1,14 @@
 FROM golang:alpine AS build-env
-COPY main.go /tmp
 RUN mkdir -p /src/src/github.com/owulveryck/ && \
     cd /src/src/github.com/owulveryck/ && \
-    apk add --no-cache git curl && \
+    apk add --no-cache git && \
     git clone https://github.com/owulveryck/onnx-go.git && \
     cd onnx-go && \
-    git checkout v0.1-mnist-cli && \
+    git checkout cloud-run && \
     cd example/gorgonia/mnist-reader && \
-    cp /tmp/main.go main.go && \
-    #curl -LO https://gist.githubusercontent.com/blackrez/ae113858d823e2904cf25862164f9508/raw/a3c37dbc1c6a40eb9326f27fa279005213a12515/main.go && \
+    # Replacing the file because the API of onnx-go is not stable yet and their is vendored libs
+    # will fix later when 1/ onnx-go will be stable 2/ I will time for this
+    curl -LO https://raw.githubusercontent.com/blackrez/onnx-go/cloud-run/example/gorgonia/mnist-reader/main.go && \
     export GOPATH=$GOPATH:/src/ && \
     go get && \
     go build -o /src/mnist-app
